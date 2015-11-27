@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="mongoClient" class="io.askcuix.push.persist.MongoDBFactory">
+		<constructor-arg index="0" value="${mongo.servers}" />
+		<property name="maxConnectionsPerHost" value="300" />
+		<property name="socketKeepAlive" value="true" />
+		<property name="connectTimeout" value="15000" />
+		<property name="socketTimeout" value="60000" />
+		<property name="writeConcern" value="SAFE" />
+		<property name="readPreference" ref="readPreferenceSecondary" />
+	</bean>
+
+    <bean id="readPreferenceSecondary" class="com.mongodb.TaggableReadPreference.SecondaryReadPreference"/>
+
+</beans>
+
