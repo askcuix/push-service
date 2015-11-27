@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds">
+
+	<property resource="push-service.properties" />
+
+	<!-- Handle JUL -->
+	<contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+		<resetJUL>true</resetJUL>
+	</contextListener>
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%date [%thread] [%file:%line] [%level %logger{0}] - %msg%n</pattern>
+		</encoder>
+	</appender>
+	
+	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${logs.dir}/push-server.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${logs.dir}/push-server.log.%d{yyyy-MM-dd}</fileNamePattern>
+			<maxHistory>15</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<charset>UTF-8</charset> 
+			<pattern>%date [%thread] [%file:%line] [%level %logger{0}] - %msg%n</pattern>
+		</encoder>
+	</appender>
+	<appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+		<appender-ref ref="FILE" />
+		<queueSize>102400</queueSize>  
+    	<discardingThreshold>0</discardingThreshold> 
+	</appender>
+	
+	<appender name="THRIFT-ACCESS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${logs.dir}/thrift_access.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${logs.dir}/thrift_access.log.%d{yyyy-MM-dd}</fileNamePattern>
+			<maxHistory>10</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<charset>UTF-8</charset> 
+			<pattern>%date - %msg%n</pattern>
+		</encoder>
+	</appender>
+	<appender name="ASYNC_THRIFT_ACCESS" class="ch.qos.logback.classic.AsyncAppender">
+		<appender-ref ref="THRIFT-ACCESS" />
+		<queueSize>102400</queueSize>  
+    	<discardingThreshold>0</discardingThreshold> 
+	</appender>
+	
+	<appender name="MONITOR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${logs.dir}/monitor.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${logs.dir}/monitor.log.%d{yyyy-MM-dd}</fileNamePattern>
+			<maxHistory>10</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<charset>UTF-8</charset> 
+			<pattern>%date - %msg%n</pattern>
+		</encoder>
+	</appender>
+	<appender name="ASYNC_MONITOR" class="ch.qos.logback.classic.AsyncAppender">
+		<appender-ref ref="MONITOR" />
+		<queueSize>102400</queueSize>  
+    	<discardingThreshold>0</discardingThreshold> 
+	</appender>
+	
+	<appender name="REGISTER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${logs.dir}/register.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${logs.dir}/register.log.%d{yyyy-MM-dd}</fileNamePattern>
+			<maxHistory>10</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<charset>UTF-8</charset> 
+			<pattern>%date - %msg%n</pattern>
+		</encoder>
+	</appender>
+	<appender name="ASYNC_REGISTER" class="ch.qos.logback.classic.AsyncAppender">
+		<appender-ref ref="REGISTER" />
+		<queueSize>102400</queueSize>  
+    	<discardingThreshold>0</discardingThreshold> 
+	</appender>
+	
+	<appender name="SUBSCRIBE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${logs.dir}/subscribe.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${logs.dir}/subscribe.log.%d{yyyy-MM-dd}</fileNamePattern>
+			<maxHistory>10</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<charset>UTF-8</charset> 
+			<pattern>%date - %msg%n</pattern>
+		</encoder>
+	</appender>
+	<appender name="ASYNC_SUBSCRIBE" class="ch.qos.logback.classic.AsyncAppender">
+		<appender-ref ref="SUBSCRIBE" />
+		<queueSize>102400</queueSize>  
+    	<discardingThreshold>0</discardingThreshold> 
+	</appender>
+	
+	<appender name="PUSH-MESSAGE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${logs.dir}/push-message.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${logs.dir}/push-message.log.%d{yyyy-MM-dd}</fileNamePattern>
+			<maxHistory>10</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<charset>UTF-8</charset> 
+			<pattern>%date - %msg%n</pattern>
+		</encoder>
+	</appender>
+	<appender name="ASYNC_PUSH_MESSAGE" class="ch.qos.logback.classic.AsyncAppender">
+		<appender-ref ref="PUSH-MESSAGE" />
+		<queueSize>102400</queueSize>  
+    	<discardingThreshold>0</discardingThreshold> 
+	</appender>
+
+	<logger name="org.apache" level="WARN" />
+	<logger name="org.springframework" level="WARN" />
+	
+	<logger name="THRIFT-ACCESS" level="INFO" additivity="false">
+		<appender-ref ref="ASYNC_THRIFT_ACCESS" />
+	</logger>
+	
+	<logger name="MONITOR" level="INFO" additivity="false">
+		<appender-ref ref="ASYNC_MONITOR" />
+	</logger>
+	
+	<logger name="REGISTER" level="INFO" additivity="false">
+		<appender-ref ref="ASYNC_REGISTER" />
+	</logger>
+	
+	<logger name="SUBSCRIBE" level="INFO" additivity="false">
+		<appender-ref ref="ASYNC_SUBSCRIBE" />
+	</logger>
+	
+	<logger name="PUSH-MESSAGE" level="INFO" additivity="false">
+		<appender-ref ref="ASYNC_PUSH_MESSAGE" />
+	</logger>
+	
+	<if condition='property("logs.level").equals("DEBUG")'>
+		<then>
+			<!-- Test Env -->
+			<root level="${logs.level}">
+				<appender-ref ref="STDOUT" />
+				<appender-ref ref="ASYNC_FILE" />
+			</root>
+		</then>
+		<else>
+			<root level="${logs.level}">
+				<appender-ref ref="ASYNC_FILE" />
+			</root>
+		</else>
+	</if>
+</configuration>
+

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans.xsd">
+		
+	<!-- MiPush -->
+	<!-- android -->
+	<bean id="androidMiSender" class="com.xiaomi.xmpush.server.Sender">
+		<constructor-arg value="${android.mipush.appSecret}" />
+	</bean>
+	
+	<bean id="androidMiSubscription" class="com.xiaomi.xmpush.server.Subscription">
+		<constructor-arg value="${android.mipush.appSecret}" />
+	</bean>
+	
+	<bean id="androidMiBundle" class="java.lang.String">
+		<constructor-arg value="${android.mipush.package}" />
+	</bean>
+	
+	<bean id="miPushAndroidService" class="io.askcuix.push.service.mipush.MiPushService">
+		<constructor-arg ref="androidMiSender" />
+	</bean>
+
+	<!-- iOS -->
+	<bean id="iOSMiSender" class="com.xiaomi.xmpush.server.Sender">
+		<constructor-arg value="${ios.mipush.appSecret}" />
+	</bean>
+
+	<bean id="iOSMiSubscription" class="com.xiaomi.xmpush.server.Subscription">
+		<constructor-arg value="${ios.mipush.appSecret}" />
+	</bean>
+
+	<bean id="iOSMiBundle" class="java.lang.String">
+		<constructor-arg value="${ios.mipush.bundle}" />
+	</bean>
+
+	<bean id="miPushiOSService" class="io.askcuix.push.service.mipush.MiPushService">
+		<constructor-arg ref="iOSMiSender" />
+	</bean>
+	
+	<!-- APNs -->
+	<bean id="iosPushService" class="io.askcuix.push.service.ios.ApplePushService">
+		<constructor-arg index="0" value="classpath:/keystore.p12" />
+		<constructor-arg index="1" value="${ios.cert.password}" />
+	</bean>
+
+		
+</beans>
