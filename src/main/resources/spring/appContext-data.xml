@@ -6,16 +6,22 @@
 		http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 	<bean id="mongoClient" class="io.askcuix.push.persist.MongoDBFactory">
-		<constructor-arg index="0" value="${mongo.servers}" />
+		<constructor-arg value="${mongo.servers}" />
 		<property name="maxConnectionsPerHost" value="300" />
 		<property name="socketKeepAlive" value="true" />
-		<property name="connectTimeout" value="15000" />
-		<property name="socketTimeout" value="60000" />
+		<property name="connectTimeout" value="3000" />
+		<property name="socketTimeout" value="5000" />
+		<property name="maxWaitTime" value="5000" />
 		<property name="writeConcern" value="SAFE" />
 		<property name="readPreference" ref="readPreferenceSecondary" />
 	</bean>
 
     <bean id="readPreferenceSecondary" class="com.mongodb.TaggableReadPreference.SecondaryReadPreference"/>
+
+	<bean id="mongoTemplate" class="io.askcuix.push.persist.MongoTemplate" >
+		<constructor-arg ref="mongoClient" />
+		<property name="database" value="push" />
+	</bean>
 
 </beans>
 
