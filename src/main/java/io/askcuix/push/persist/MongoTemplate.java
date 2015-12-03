@@ -1,8 +1,10 @@
 package io.askcuix.push.persist;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +61,16 @@ public class MongoTemplate {
         }
 
         return mongoClient.getDatabase(dbname);
+    }
+
+    public MongoCollection<Document> getCollection(String collectionName) {
+        MongoDatabase db = getDB();
+
+        if (db == null) {
+            throw new IllegalStateException("Default database not exists!");
+        }
+
+        return db.getCollection(collectionName);
     }
 
     public String getDatabase() {

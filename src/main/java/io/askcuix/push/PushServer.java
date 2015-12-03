@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.askcuix.push.service.PushServiceImpl;
 import io.askcuix.push.transport.PushServiceProcessor;
 import io.askcuix.push.transport.TFramedTransportWraper;
+import io.askcuix.push.util.ThreadUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -69,7 +70,7 @@ public class PushServer {
         TTransportFactory outTransportFactory = new TFramedTransportWraper.Factory(DEFAULT_FRAMED_SIZE);
 
         TProcessor processor = new PushServiceProcessor(pushService);
-        TThreadPoolServer.Args args = new TThreadPoolServer.Args(tServerSocket).minWorkerThreads(4).inputTransportFactory(inTransportFactory)
+        TThreadPoolServer.Args args = new TThreadPoolServer.Args(tServerSocket).minWorkerThreads(5).inputTransportFactory(inTransportFactory)
                 .outputTransportFactory(outTransportFactory).inputProtocolFactory(protocolFactory)
                 .outputProtocolFactory(protocolFactory).processor(processor);
 
@@ -81,7 +82,7 @@ public class PushServer {
         /**
          * Start serving.
          */
-        servingExecutor.submit(new Runnable() {
+        servingExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 logger.info("Push service thrift server starting up...");
@@ -115,15 +116,8 @@ public class PushServer {
         }
 
         server.stop();
-        servingExecutor.shutdown();
 
-        try {
-            if (!servingExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                servingExecutor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            // Ignore
-        }
+        ThreadUtil.gracefulShutdown(servingExecutor, 5000);
 
         context.stop();
 

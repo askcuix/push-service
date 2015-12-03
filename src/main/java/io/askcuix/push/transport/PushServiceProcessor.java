@@ -1,7 +1,7 @@
 package io.askcuix.push.transport;
 
 import io.askcuix.push.thrift.PushService;
-import io.askcuix.push.util.ThreadHelper;
+import io.askcuix.push.util.RequestThreadHelper;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TProtocol;
@@ -44,7 +44,7 @@ public class PushServiceProcessor extends PushService.Processor<PushService.Ifac
     public boolean process(TProtocol iprot, TProtocol oprot) throws TException {
         String ip = getClientIp(iprot);
 
-        ThreadHelper.setRequestorIp(ip);
+        RequestThreadHelper.setRequestorIp(ip);
         try {
             boolean result = super.process(iprot, oprot);
             return result;
@@ -52,7 +52,7 @@ public class PushServiceProcessor extends PushService.Processor<PushService.Ifac
             logger.error("Exception occured when request from: {}. Error: {}", ip, e.getMessage());
             throw e;
         } finally {
-            ThreadHelper.cleanupRequestorIp();
+            RequestThreadHelper.cleanupRequestorIp();
         }
     }
 }

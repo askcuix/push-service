@@ -12,7 +12,6 @@
 		<property name="connectTimeout" value="3000" />
 		<property name="socketTimeout" value="5000" />
 		<property name="maxWaitTime" value="5000" />
-		<property name="writeConcern" value="SAFE" />
 		<property name="readPreference" ref="readPreferenceSecondary" />
 	</bean>
 

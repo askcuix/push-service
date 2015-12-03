@@ -5,7 +5,7 @@ package io.askcuix.push.util;
  *
  * Created by Chris on 15/11/27.
  */
-public class ThreadHelper {
+public class RequestThreadHelper {
 
     private static ThreadLocal<String> requestorIp = new ThreadLocal<String>();
 
