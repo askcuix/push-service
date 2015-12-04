@@ -155,7 +155,7 @@ public class UserPushInfoDao {
         } finally {
             long costTime = System.currentTimeMillis() - start;
 
-            if (costTime > 1000) {
+            if (costTime > MONITOR_THRESHOLDS) {
                 monitorLogger.info("[MongoDB] findUsers - uidList size: {}, os: {}, isNotify: {}, pushSysType: {} cost time: {}ms", uidList.size(), os, isNotify, pushSysType, costTime);
             }
         }
@@ -183,7 +183,7 @@ public class UserPushInfoDao {
         } finally {
             long costTime = System.currentTimeMillis() - start;
 
-            if (costTime > 1000) {
+            if (costTime > MONITOR_THRESHOLDS) {
                 monitorLogger.info("[MongoDB] findUsers - lastUid: {}, os: {}, isNotify: {}, pushSysType: {}, limit: {}, cost time: {}ms", lastUid, os, isNotify, pushSysType, limit, costTime);
             }
         }
@@ -222,7 +222,7 @@ public class UserPushInfoDao {
         } finally {
             long costTime = System.currentTimeMillis() - start;
 
-            if (costTime > 1000) {
+            if (costTime > MONITOR_THRESHOLDS) {
                 monitorLogger.info("[MongoDB] removeUserInfo - uid: {}, cost time: {}ms", uid, costTime);
             }
         }
