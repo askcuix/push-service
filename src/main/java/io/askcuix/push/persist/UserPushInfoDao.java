@@ -72,6 +72,8 @@ public class UserPushInfoDao {
             } else {
                 dbObj.put(FIELD_PUSH_ID, "");
             }
+            dbObj.put(MongoTemplate.FIELD_CREATE_TIME, userInfo.getCreateTime());
+            dbObj.put(MongoTemplate.FIELD_UPDATE_TIME, userInfo.getUpdateTime());
 
             BasicDBObject filter = new BasicDBObject(MongoTemplate.FIELD_OBJ_ID, userInfo.getUid());
 

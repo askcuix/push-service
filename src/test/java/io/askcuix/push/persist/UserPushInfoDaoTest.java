@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
+import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -34,6 +35,8 @@ public class UserPushInfoDaoTest extends AbstractJUnit4SpringContextTests {
         pushInfo.setNotifyId("d//igwEhgBGCI2TG6lWqlMgWOpgKQoV6aYFRwxXOHPXUi1Asbs4MDh8lVKTCU/sBMIdNjhHG7F228+v5mQWBJN9RJiTZy6ylPLyAoHvoF5k=");
         pushInfo.setPushSysType(PushSysType.MiPush.getValue());
         pushInfo.setPushId("d//igwEhgBGCI2TG6lWqlMgWOpgKQoV6aYFRwxXOHPXUi1Asbs4MDh8lVKTCU/sBMIdNjhHG7F228+v5mQWBJN9RJiTZy6ylPLyAoHvoF5k=");
+        pushInfo.setCreateTime(new Date());
+        pushInfo.setUpdateTime(new Date());
 
         //create
         userPushInfoDao.saveUserInfo(pushInfo);
