@@ -1,5 +1,6 @@
 package io.askcuix.push.persist;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -12,6 +13,7 @@ import static org.junit.Assert.*;
 /**
  * Created by Chris on 15/12/7.
  */
+@Ignore
 @ContextConfiguration(locations = { "/appContext-test.xml" })
 public class SubscribeDaoTest extends AbstractJUnit4SpringContextTests {
 
