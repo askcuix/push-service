@@ -1,13 +1,8 @@
 package io.askcuix.push.service.ios;
 
-import io.askcuix.push.common.Constant;
-import io.askcuix.push.payload.PayloadMsgType;
 import io.askcuix.push.payload.PayloadType;
-import io.askcuix.push.thrift.MessageType;
 import io.askcuix.push.thrift.PushMessage;
 import io.askcuix.push.util.ThreadUtil;
-import javapns.notification.Payload;
-import javapns.notification.PushNotificationBigPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,10 +58,13 @@ public class ApplePushQueueProcessor {
         APNsPayload payload = new APNsPayload();
         payload.setType(PayloadType.SEND);
         payload.setDeviceList(deviceList);
-        payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
 
-        Payload msg = buildMessage(message);
-        payload.setMessage(msg);
+        try {
+            payload.setPushMessage(message);
+        } catch (Exception e) {
+            logger.error("Construct payload from push message error, ignore to send.", e);
+            return;
+        }
 
         logger.debug("Put APNs payload to queue: {}", payload);
 
@@ -82,10 +80,13 @@ public class ApplePushQueueProcessor {
         APNsPayload payload = new APNsPayload();
         payload.setType(PayloadType.MULTICAST);
         payload.setTopic(topic);
-        payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
 
-        Payload msg = buildMessage(message);
-        payload.setMessage(msg);
+        try {
+            payload.setPushMessage(message);
+        } catch (Exception e) {
+            logger.error("Construct payload from push message error, ignore to send.", e);
+            return;
+        }
 
         logger.debug("Put APNs multicast payload to queue: {}", payload);
 
@@ -97,13 +98,16 @@ public class ApplePushQueueProcessor {
             logger.warn("[APNs] Push system not enabled!");
             return;
         }
-        
+
         APNsPayload payload = new APNsPayload();
         payload.setType(PayloadType.BROADCAST);
-        payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
 
-        Payload msg = buildMessage(message);
-        payload.setMessage(msg);
+        try {
+            payload.setPushMessage(message);
+        } catch (Exception e) {
+            logger.error("Construct payload from push message error, ignore to send.", e);
+            return;
+        }
 
         logger.debug("Put APNs broadcast payload to queue: {}", payload);
 
@@ -137,35 +141,4 @@ public class ApplePushQueueProcessor {
         }
     }
 
-    /**
-     * 构造iOS通知消息。
-     *
-     * @param pushMessage
-     * @return ios message
-     */
-    private Payload buildMessage(PushMessage pushMessage) {
-        PushNotificationBigPayload payload = null;
-
-        try {
-            /* Build a blank payload to customize, max payload is 2048byte */
-            payload = PushNotificationBigPayload.complex();
-
-            /* Customize the payload */
-            if (pushMessage.getMsgType() == MessageType.Notification) {
-                payload.addAlert(pushMessage.getDesc());
-                payload.addSound("default");
-            }
-
-            payload.addCustomDictionary(Constant.MESSAGE_DATA_KEY, pushMessage.getData());
-
-            if (pushMessage.getExpiry() > 0L) {
-                payload.setExpiry(new Long(pushMessage.getExpiry() / 1000).intValue());
-            }
-        } catch (Exception e) {
-            logger.error("Fail to build ios notification message.", e);
-            payload = null;
-        }
-
-        return payload;
-    }
 }

@@ -1,14 +1,9 @@
 package io.askcuix.push.service.mipush;
 
-import com.xiaomi.xmpush.server.Message;
-import io.askcuix.push.common.Constant;
-import io.askcuix.push.payload.PayloadMsgType;
 import io.askcuix.push.payload.PayloadType;
-import io.askcuix.push.thrift.MessageType;
 import io.askcuix.push.thrift.OsType;
 import io.askcuix.push.thrift.PushMessage;
 import io.askcuix.push.util.ThreadUtil;
-import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,9 +13,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -83,15 +76,14 @@ public class MiPushQueueProcessor {
         MiPushPayload payload = new MiPushPayload();
         payload.setType(PayloadType.SEND);
         payload.setDeviceList(deviceList);
-        payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
+        payload.setOsType(os.getValue());
 
-        Message miMsg;
         if (os == OsType.Android) {
-            miMsg = buildAndroidMessage(message);
+            payload.setBundle(androidBundle);
         } else {
-            miMsg = buildiOsMessage(message);
+            payload.setBundle(iOSBundle);
         }
-        payload.setMessage(miMsg);
+        payload.setPushMessage(message);
 
         logger.debug("Put MiPush payload to queue: {}", payload);
 
@@ -107,15 +99,14 @@ public class MiPushQueueProcessor {
         MiPushPayload payload = new MiPushPayload();
         payload.setType(PayloadType.MULTICAST);
         payload.setTopic(topic);
-        payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
+        payload.setOsType(os.getValue());
 
-        Message miMsg;
         if (os == OsType.Android) {
-            miMsg = buildAndroidMessage(message);
+            payload.setBundle(androidBundle);
         } else {
-            miMsg = buildiOsMessage(message);
+            payload.setBundle(iOSBundle);
         }
-        payload.setMessage(miMsg);
+        payload.setPushMessage(message);
 
         logger.debug("Put MiPush multicast payload to queue: {}", payload);
 
@@ -130,15 +121,14 @@ public class MiPushQueueProcessor {
 
         MiPushPayload payload = new MiPushPayload();
         payload.setType(PayloadType.BROADCAST);
-        payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
+        payload.setOsType(os.getValue());
 
-        Message miMsg;
         if (os == OsType.Android) {
-            miMsg = buildAndroidMessage(message);
+            payload.setBundle(androidBundle);
         } else {
-            miMsg = buildiOsMessage(message);
+            payload.setBundle(iOSBundle);
         }
-        payload.setMessage(miMsg);
+        payload.setPushMessage(message);
 
         logger.debug("Put MiPush broadcast payload to queue: {}", payload);
 
@@ -188,53 +178,5 @@ public class MiPushQueueProcessor {
 
     }
 
-    /**
-     * 构造android通知消息。
-     *
-     * @param pushMessage
-     * @return android message
-     */
-    private Message buildAndroidMessage(PushMessage pushMessage) {
-        if (pushMessage == null) {
-            return null;
-        }
 
-        Map<String, String> dataMap = new HashMap<String, String>();
-        dataMap.put(Constant.MESSAGE_DATA_KEY, pushMessage.getData());
-
-        JSONObject dataJson = new JSONObject(dataMap);
-        String payload = dataJson.toJSONString();
-
-        Message.Builder builder = new Message.Builder().payload(payload) // 数据
-                .restrictedPackageName(androidBundle) // 包名
-                .passThrough(pushMessage.getMsgType().getValue()); // 消息通知方式
-
-        if (pushMessage.getMsgType() == MessageType.Notification) {
-            builder.title(pushMessage.getTitle()); // 通知栏标题
-            builder.description(pushMessage.getDesc()); // 通知栏描述
-            builder.notifyType(-1); // 使用全部提示
-        }
-
-        if (pushMessage.getExpiry() > 0L) {
-            builder.timeToLive(pushMessage.getExpiry());
-        }
-
-        return builder.build();
-    }
-
-    public static Message buildiOsMessage(PushMessage pushMessage) {
-        if (pushMessage == null) {
-            return null;
-        }
-
-        Message.IOSBuilder builder = new Message.IOSBuilder();
-        builder.description(pushMessage.getDesc());
-        builder.extra(Constant.MESSAGE_DATA_KEY, pushMessage.getData());
-
-        if (pushMessage.getExpiry() > 0L) {
-            builder.timeToLive(pushMessage.getExpiry());
-        }
-
-        return builder.build();
-    }
 }
