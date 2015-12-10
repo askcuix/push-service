@@ -32,6 +32,7 @@ import static com.mongodb.client.model.Filters.*;
 public class SubscribeDao {
     private static final Logger logger = LoggerFactory.getLogger(SubscribeDao.class);
     private final static Logger monitorLogger = LoggerFactory.getLogger(Constant.LOG_MONITOR);
+    private static final Logger subscribeLogger = LoggerFactory.getLogger(Constant.LOG_SUBSCRIBE);
 
     private static final String COLLECTION_TOPIC_SUBSCRIBE = "subscribe_topic";
 
@@ -53,6 +54,8 @@ public class SubscribeDao {
             dbObj.put(MongoTemplate.FIELD_CREATE_TIME, System.currentTimeMillis());
 
             mongoTemplate.getCollection(COLLECTION_TOPIC_SUBSCRIBE).insertOne(dbObj);
+
+            subscribeLogger.info("[MongoDB] Subscribe - topic: {}, uid: {}", topic, uid);
         } catch (DuplicateKeyException e) {
             logger.warn("Subscribe relation exist. topic: " + topic + ", id: " + uid, e);
             return false;
@@ -71,8 +74,9 @@ public class SubscribeDao {
         long start = System.currentTimeMillis();
 
         try {
-
             mongoTemplate.getCollection(COLLECTION_TOPIC_SUBSCRIBE).deleteOne(and(eq(FIELD_TOPIC, topic), eq(FIELD_FID, uid)));
+
+            subscribeLogger.info("[MongoDB] Unsubscribe - topic: {}, uid: {}", topic, uid);
         } finally {
             long costTime = System.currentTimeMillis() - start;
 

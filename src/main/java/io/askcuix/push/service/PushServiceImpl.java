@@ -24,7 +24,10 @@ public class PushServiceImpl implements PushService.Iface {
     @Autowired
     private RegisterService registerService;
 
-    private static final long MONITOR_THRESHOLDS = 1000L;
+    @Autowired
+    private SubscribeService subscribeService;
+
+    private static final long MONITOR_THRESHOLDS = 3000L;
 
     @Override
     public boolean registerPush(UserInfo userInfo) throws TException {
@@ -83,12 +86,44 @@ public class PushServiceImpl implements PushService.Iface {
 
     @Override
     public boolean subscribe(String topic, String uid) throws TException {
-        return false;
+        accessLogger.info("subscribe - topic: {}, uid: {}, ip: {}", topic, uid, RequestThreadHelper.getRequestorIp());
+        long start = System.currentTimeMillis();
+
+        if (StringUtils.isBlank(topic) || StringUtils.isBlank(uid)) {
+            logger.warn("[subscribe] Request parameter is invalid. topic: {}, uid: {}", topic, uid);
+
+            return false;
+        }
+
+        boolean result = subscribeService.subscribe(topic, uid);
+
+        long duration = System.currentTimeMillis() - start;
+        if (duration > MONITOR_THRESHOLDS) {
+            monitorLogger.warn("subscribe - topic: {}, uid: {}, cost time: {}ms", topic, uid, duration);
+        }
+
+        return result;
     }
 
     @Override
     public boolean unsubscribe(String topic, String uid) throws TException {
-        return false;
+        accessLogger.info("unsubscribe - topic: {}, uid: {}, ip: {}", topic, uid, RequestThreadHelper.getRequestorIp());
+        long start = System.currentTimeMillis();
+
+        if (StringUtils.isBlank(topic) || StringUtils.isBlank(uid)) {
+            logger.warn("[unsubscribe] Request parameter is invalid. topic: {}, uid: {}", topic, uid);
+
+            return false;
+        }
+
+        boolean result = subscribeService.unsubscribe(topic, uid);
+
+        long duration = System.currentTimeMillis() - start;
+        if (duration > 1000L) {
+            monitorLogger.warn("unsubscribe - topic: {}, uid: {}, cost time: {}ms", topic, uid, duration);
+        }
+
+        return result;
     }
 
     @Override

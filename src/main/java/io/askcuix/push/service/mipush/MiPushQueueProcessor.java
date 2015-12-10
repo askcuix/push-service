@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -46,16 +47,30 @@ public class MiPushQueueProcessor {
     @Qualifier("miPushiOSService")
     private MiPushService iOSPushService;
 
+    @Value("${mipush.android.enable}")
+    private boolean enableAndroidPush;
+
+    @Value("${mipush.ios.enable}")
+    private boolean enableiOSPush;
+
     private ExecutorService miPushExecutor;
 
     @PostConstruct
     public void init() {
+        if (!enableAndroidPush && !enableiOSPush) {
+            return;
+        }
+
         miPushExecutor = new ThreadUtil.FixedThreadPoolBuilder().setThreadFactory(ThreadUtil.buildThreadFactory("MiPush-Queue"))
                 .setPoolSize(1).setQueueSize(10000).build();
     }
 
     @PreDestroy
     public void destroy() {
+        if (miPushExecutor == null) {
+            return;
+        }
+
         ThreadUtil.gracefulShutdown(miPushExecutor, 5000);
     }
 
@@ -101,6 +116,11 @@ public class MiPushQueueProcessor {
     }
 
     private void process(final OsType os, final MiPushPayload payload) {
+        if (!enableAndroidPush && !enableiOSPush) {
+            logger.warn("[MiPush] Push system not enabled!");
+            return;
+        }
+
         try {
             miPushExecutor.execute(new ThreadUtil.WrapExceptionRunnable(new Runnable() {
                 @Override
@@ -108,25 +128,25 @@ public class MiPushQueueProcessor {
                     PayloadType type = payload.getType();
                     switch (type) {
                         case SEND:
-                            if (os == OsType.Android) {
+                            if (os == OsType.Android && enableAndroidPush) {
                                 androidPushService.sendToDevices(payload.getDeviceList(), payload.getMessage());
-                            } else {
+                            } else if (os == OsType.iOS && enableiOSPush){
                                 iOSPushService.sendToDevices(payload.getDeviceList(), payload.getMessage());
                             }
 
                             break;
                         case MULTICAST:
-                            if (os == OsType.Android) {
+                            if (os == OsType.Android && enableAndroidPush) {
                                 androidPushService.broadcast(payload.getTopic(), payload.getMessage());
-                            } else {
+                            } else if (os == OsType.iOS && enableiOSPush){
                                 iOSPushService.broadcast(payload.getTopic(), payload.getMessage());
                             }
 
                             break;
                         case BROADCAST:
-                            if (os == OsType.Android) {
+                            if (os == OsType.Android && enableAndroidPush) {
                                 androidPushService.broadcastAll(payload.getMessage());
-                            } else {
+                            } else if (os == OsType.iOS && enableiOSPush){
                                 iOSPushService.broadcastAll(payload.getMessage());
                             }
 

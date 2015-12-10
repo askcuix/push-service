@@ -11,6 +11,7 @@ import javapns.notification.PushNotificationBigPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -29,16 +30,27 @@ public class ApplePushQueueProcessor {
     @Autowired
     private ApplePushService pushService;
 
+    @Value("${apns.enable}")
+    private boolean enablePush;
+
     private ExecutorService apnsExecutor;
 
     @PostConstruct
     public void init() {
+        if (!enablePush) {
+            return;
+        }
+
         apnsExecutor = new ThreadUtil.FixedThreadPoolBuilder().setThreadFactory(ThreadUtil.buildThreadFactory("APNs-Queue"))
                 .setPoolSize(5).setQueueSize(10000).build();
     }
 
     @PreDestroy
     public void destroy() {
+        if (apnsExecutor == null) {
+            return;
+        }
+
         ThreadUtil.gracefulShutdown(apnsExecutor, 5000);
     }
 
@@ -84,6 +96,11 @@ public class ApplePushQueueProcessor {
     }
 
     private void process(final APNsPayload payload) {
+        if (!enablePush) {
+            logger.warn("[APNs] Push system not enabled!");
+            return;
+        }
+
         try {
             apnsExecutor.execute(new ThreadUtil.WrapExceptionRunnable(new Runnable() {
                 @Override
