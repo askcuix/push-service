@@ -55,6 +55,11 @@ public class ApplePushQueueProcessor {
     }
 
     public void putMessage(List<String> deviceList, PushMessage message) {
+        if (!enablePush) {
+            logger.warn("[APNs] Push system not enabled!");
+            return;
+        }
+
         APNsPayload payload = new APNsPayload();
         payload.setType(PayloadType.SEND);
         payload.setDeviceList(deviceList);
@@ -69,6 +74,11 @@ public class ApplePushQueueProcessor {
     }
 
     public void putMulticast(String topic, PushMessage message) {
+        if (!enablePush) {
+            logger.warn("[APNs] Push system not enabled!");
+            return;
+        }
+
         APNsPayload payload = new APNsPayload();
         payload.setType(PayloadType.MULTICAST);
         payload.setTopic(topic);
@@ -83,6 +93,11 @@ public class ApplePushQueueProcessor {
     }
 
     public void putBroadcast(PushMessage message) {
+        if (!enablePush) {
+            logger.warn("[APNs] Push system not enabled!");
+            return;
+        }
+        
         APNsPayload payload = new APNsPayload();
         payload.setType(PayloadType.BROADCAST);
         payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
@@ -96,11 +111,6 @@ public class ApplePushQueueProcessor {
     }
 
     private void process(final APNsPayload payload) {
-        if (!enablePush) {
-            logger.warn("[APNs] Push system not enabled!");
-            return;
-        }
-
         try {
             apnsExecutor.execute(new ThreadUtil.WrapExceptionRunnable(new Runnable() {
                 @Override

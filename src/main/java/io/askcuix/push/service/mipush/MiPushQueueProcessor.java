@@ -75,12 +75,22 @@ public class MiPushQueueProcessor {
     }
 
     public void putMessage(OsType os, List<String> deviceList, PushMessage message) {
+        if ((os == OsType.Android && !enableAndroidPush) || (os == OsType.iOS && !enableiOSPush)) {
+            logger.warn("[MiPush] Push system not enabled!");
+            return;
+        }
+
         MiPushPayload payload = new MiPushPayload();
         payload.setType(PayloadType.SEND);
         payload.setDeviceList(deviceList);
         payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
 
-        Message miMsg = buildMessage(os, message);
+        Message miMsg;
+        if (os == OsType.Android) {
+            miMsg = buildAndroidMessage(message);
+        } else {
+            miMsg = buildiOsMessage(message);
+        }
         payload.setMessage(miMsg);
 
         logger.debug("Put MiPush payload to queue: {}", payload);
@@ -89,12 +99,22 @@ public class MiPushQueueProcessor {
     }
 
     public void putMulticast(OsType os, String topic, PushMessage message) {
+        if ((os == OsType.Android && !enableAndroidPush) || (os == OsType.iOS && !enableiOSPush)) {
+            logger.warn("[MiPush] Push system not enabled!");
+            return;
+        }
+
         MiPushPayload payload = new MiPushPayload();
         payload.setType(PayloadType.MULTICAST);
         payload.setTopic(topic);
         payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
 
-        Message miMsg = buildMessage(os, message);
+        Message miMsg;
+        if (os == OsType.Android) {
+            miMsg = buildAndroidMessage(message);
+        } else {
+            miMsg = buildiOsMessage(message);
+        }
         payload.setMessage(miMsg);
 
         logger.debug("Put MiPush multicast payload to queue: {}", payload);
@@ -103,11 +123,21 @@ public class MiPushQueueProcessor {
     }
 
     public void putBroadcast(OsType os, PushMessage message) {
+        if ((os == OsType.Android && !enableAndroidPush) || (os == OsType.iOS && !enableiOSPush)) {
+            logger.warn("[MiPush] Push system not enabled!");
+            return;
+        }
+
         MiPushPayload payload = new MiPushPayload();
         payload.setType(PayloadType.BROADCAST);
         payload.setMsgType(PayloadMsgType.findByValue(message.getMsgType().getValue()));
 
-        Message miMsg = buildMessage(os, message);
+        Message miMsg;
+        if (os == OsType.Android) {
+            miMsg = buildAndroidMessage(message);
+        } else {
+            miMsg = buildiOsMessage(message);
+        }
         payload.setMessage(miMsg);
 
         logger.debug("Put MiPush broadcast payload to queue: {}", payload);
@@ -116,11 +146,6 @@ public class MiPushQueueProcessor {
     }
 
     private void process(final OsType os, final MiPushPayload payload) {
-        if (!enableAndroidPush && !enableiOSPush) {
-            logger.warn("[MiPush] Push system not enabled!");
-            return;
-        }
-
         try {
             miPushExecutor.execute(new ThreadUtil.WrapExceptionRunnable(new Runnable() {
                 @Override
@@ -128,25 +153,25 @@ public class MiPushQueueProcessor {
                     PayloadType type = payload.getType();
                     switch (type) {
                         case SEND:
-                            if (os == OsType.Android && enableAndroidPush) {
+                            if (os == OsType.Android) {
                                 androidPushService.sendToDevices(payload.getDeviceList(), payload.getMessage());
-                            } else if (os == OsType.iOS && enableiOSPush){
+                            } else if (os == OsType.iOS) {
                                 iOSPushService.sendToDevices(payload.getDeviceList(), payload.getMessage());
                             }
 
                             break;
                         case MULTICAST:
-                            if (os == OsType.Android && enableAndroidPush) {
+                            if (os == OsType.Android) {
                                 androidPushService.broadcast(payload.getTopic(), payload.getMessage());
-                            } else if (os == OsType.iOS && enableiOSPush){
+                            } else if (os == OsType.iOS) {
                                 iOSPushService.broadcast(payload.getTopic(), payload.getMessage());
                             }
 
                             break;
                         case BROADCAST:
-                            if (os == OsType.Android && enableAndroidPush) {
+                            if (os == OsType.Android) {
                                 androidPushService.broadcastAll(payload.getMessage());
-                            } else if (os == OsType.iOS && enableiOSPush){
+                            } else if (os == OsType.iOS) {
                                 iOSPushService.broadcastAll(payload.getMessage());
                             }
 
@@ -169,7 +194,7 @@ public class MiPushQueueProcessor {
      * @param pushMessage
      * @return android message
      */
-    private Message buildMessage(OsType os, PushMessage pushMessage) {
+    private Message buildAndroidMessage(PushMessage pushMessage) {
         if (pushMessage == null) {
             return null;
         }
@@ -181,19 +206,30 @@ public class MiPushQueueProcessor {
         String payload = dataJson.toJSONString();
 
         Message.Builder builder = new Message.Builder().payload(payload) // 数据
+                .restrictedPackageName(androidBundle) // 包名
                 .passThrough(pushMessage.getMsgType().getValue()); // 消息通知方式
-
-        if (os == OsType.Android) {
-            builder.restrictedPackageName(androidBundle); // 包名
-        } else {
-            builder.restrictedPackageName(iOSBundle); // 包名
-        }
 
         if (pushMessage.getMsgType() == MessageType.Notification) {
             builder.title(pushMessage.getTitle()); // 通知栏标题
             builder.description(pushMessage.getDesc()); // 通知栏描述
             builder.notifyType(-1); // 使用全部提示
         }
+
+        if (pushMessage.getExpiry() > 0L) {
+            builder.timeToLive(pushMessage.getExpiry());
+        }
+
+        return builder.build();
+    }
+
+    public static Message buildiOsMessage(PushMessage pushMessage) {
+        if (pushMessage == null) {
+            return null;
+        }
+
+        Message.IOSBuilder builder = new Message.IOSBuilder();
+        builder.description(pushMessage.getDesc());
+        builder.extra(Constant.MESSAGE_DATA_KEY, pushMessage.getData());
 
         if (pushMessage.getExpiry() > 0L) {
             builder.timeToLive(pushMessage.getExpiry());
