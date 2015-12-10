@@ -11,6 +11,7 @@ import javapns.notification.PushNotificationBigPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -21,6 +22,7 @@ import java.util.concurrent.RejectedExecutionException;
 /**
  * Created by Chris on 15/12/9.
  */
+@Component
 public class ApplePushQueueProcessor {
     private static final Logger logger = LoggerFactory.getLogger(ApplePushQueueProcessor.class);
 

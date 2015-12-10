@@ -12,4 +12,7 @@ public class Constant {
     public final static String LOG_PUSH_MESSAGE = "PUSH-MESSAGE";
 
     public static final String MESSAGE_DATA_KEY = "pushData";
+
+    public static final String DEVICE_ANDROID = "Android";
+    public static final String DEVICE_IOS = "iOS";
 }

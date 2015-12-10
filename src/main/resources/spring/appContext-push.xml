@@ -18,9 +18,15 @@
 	<bean id="androidMiBundle" class="java.lang.String">
 		<constructor-arg value="${android.mipush.package}" />
 	</bean>
+
+	<bean id="miPushAndroidSubscription" class="io.askcuix.push.service.mipush.MiPushSubscription">
+		<constructor-arg index="0" ref="androidMiSubscription" />
+		<constructor-arg index="1" value="Android" />
+	</bean>
 	
 	<bean id="miPushAndroidService" class="io.askcuix.push.service.mipush.MiPushService">
-		<constructor-arg ref="androidMiSender" />
+		<constructor-arg index="0" ref="androidMiSender" />
+		<constructor-arg index="1" value="Android" />
 	</bean>
 
 	<!-- iOS -->
@@ -36,8 +42,14 @@
 		<constructor-arg value="${ios.mipush.bundle}" />
 	</bean>
 
+	<bean id="miPushiOSSubscription" class="io.askcuix.push.service.mipush.MiPushSubscription">
+		<constructor-arg index="0" ref="iOSMiSubscription" />
+		<constructor-arg index="1" value="iOS" />
+	</bean>
+
 	<bean id="miPushiOSService" class="io.askcuix.push.service.mipush.MiPushService">
-		<constructor-arg ref="iOSMiSender" />
+		<constructor-arg index="0" ref="iOSMiSender" />
+		<constructor-arg index="1" value="iOS" />
 	</bean>
 	
 	<!-- APNs -->
