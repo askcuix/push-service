@@ -1,5 +1,8 @@
 package io.askcuix.push.service.mipush;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.util.concurrent.RateLimiter;
+import io.askcuix.push.common.Constant;
 import io.askcuix.push.payload.PayloadType;
 import io.askcuix.push.thrift.OsType;
 import io.askcuix.push.thrift.PushMessage;
@@ -14,8 +17,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by Chris on 15/12/10.
@@ -23,6 +26,9 @@ import java.util.concurrent.RejectedExecutionException;
 @Component
 public class MiPushQueueProcessor {
     private static final Logger logger = LoggerFactory.getLogger(MiPushQueueProcessor.class);
+    private static final Logger monitorLogger = LoggerFactory.getLogger(Constant.LOG_MONITOR);
+
+    private static final long MONITOR_SEC = 60;
 
     @Autowired
     @Qualifier("androidMiBundle")
@@ -48,21 +54,41 @@ public class MiPushQueueProcessor {
 
     private ExecutorService miPushExecutor;
 
+    private AtomicLong processCounter = new AtomicLong(0);
+    private AtomicLong reqCounter = new AtomicLong(0);
+    private AtomicLong processTime = new AtomicLong(0);
+    private ScheduledExecutorService monitorExecutor;
+
+    private RateLimiter rateLimiter;
+
     @PostConstruct
     public void init() {
         if (!enableAndroidPush && !enableiOSPush) {
             return;
         }
 
+        rateLimiter = RateLimiter.create(10000);
+
         miPushExecutor = new ThreadUtil.FixedThreadPoolBuilder().setThreadFactory(ThreadUtil.buildThreadFactory("MiPush-Queue"))
-                .setPoolSize(1).setQueueSize(10000).build();
+                .setPoolSize(1).setQueueSize(10000).setRejectHanlder(new ThreadPoolExecutor.DiscardOldestPolicy()).build();
+
+        monitorExecutor = Executors.newSingleThreadScheduledExecutor(ThreadUtil.buildThreadFactory("MiPush-Monitor"));
+        monitorExecutor.scheduleAtFixedRate(new ThreadUtil.WrapExceptionRunnable(new Runnable() {
+
+            @Override
+            public void run() {
+                long count = processCounter.getAndSet(0);
+                long reqCount = reqCounter.getAndSet(0);
+                long processMs = processTime.getAndSet(0);
+                monitorLogger.info("[MiPush] Total messages: {}, Process count: {}. Average process time per message: {}ms",
+                        reqCount, count, (count == 0 ? 0 : (processMs / count)));
+            }
+        }), MONITOR_SEC, MONITOR_SEC, TimeUnit.SECONDS);
     }
 
     @PreDestroy
     public void destroy() {
-        if (miPushExecutor == null) {
-            return;
-        }
+        ThreadUtil.gracefulShutdown(monitorExecutor, 1000);
 
         ThreadUtil.gracefulShutdown(miPushExecutor, 5000);
     }
@@ -77,6 +103,7 @@ public class MiPushQueueProcessor {
         payload.setType(PayloadType.SEND);
         payload.setDeviceList(deviceList);
         payload.setOsType(os.getValue());
+        payload.setExpiry(message.getExpiry());
 
         if (os == OsType.Android) {
             payload.setBundle(androidBundle);
@@ -100,6 +127,7 @@ public class MiPushQueueProcessor {
         payload.setType(PayloadType.MULTICAST);
         payload.setTopic(topic);
         payload.setOsType(os.getValue());
+        payload.setExpiry(message.getExpiry());
 
         if (os == OsType.Android) {
             payload.setBundle(androidBundle);
@@ -122,6 +150,7 @@ public class MiPushQueueProcessor {
         MiPushPayload payload = new MiPushPayload();
         payload.setType(PayloadType.BROADCAST);
         payload.setOsType(os.getValue());
+        payload.setExpiry(message.getExpiry());
 
         if (os == OsType.Android) {
             payload.setBundle(androidBundle);
@@ -136,47 +165,60 @@ public class MiPushQueueProcessor {
     }
 
     private void process(final OsType os, final MiPushPayload payload) {
-        try {
-            miPushExecutor.execute(new ThreadUtil.WrapExceptionRunnable(new Runnable() {
-                @Override
-                public void run() {
-                    PayloadType type = payload.getType();
-                    switch (type) {
-                        case SEND:
-                            if (os == OsType.Android) {
-                                androidPushService.sendToDevices(payload.getDeviceList(), payload.getMessage());
-                            } else if (os == OsType.iOS) {
-                                iOSPushService.sendToDevices(payload.getDeviceList(), payload.getMessage());
-                            }
-
-                            break;
-                        case MULTICAST:
-                            if (os == OsType.Android) {
-                                androidPushService.broadcast(payload.getTopic(), payload.getMessage());
-                            } else if (os == OsType.iOS) {
-                                iOSPushService.broadcast(payload.getTopic(), payload.getMessage());
-                            }
-
-                            break;
-                        case BROADCAST:
-                            if (os == OsType.Android) {
-                                androidPushService.broadcastAll(payload.getMessage());
-                            } else if (os == OsType.iOS) {
-                                iOSPushService.broadcastAll(payload.getMessage());
-                            }
-
-                            break;
-                        default:
-                            logger.warn("Invalid message: {}", payload);
-                            break;
-                    }
-                }
-            }));
-        } catch (RejectedExecutionException e) {
-            logger.warn("[MiPush] Rejected push payload: {}. Error Message: {}", payload, e.getMessage());
+        if (payload.getExpiry() > 0L && payload.getExpiry() < System.currentTimeMillis()) {
+            logger.warn("Ignore to process expired message: {}", payload);
+            return;
         }
 
-    }
+        if (!rateLimiter.tryAcquire()) {
+            monitorLogger.warn("[MiPush] Exceed rate limit: {}, discard message: {}", rateLimiter.getRate(), payload);
+            return;
+        }
 
+        reqCounter.incrementAndGet();
+
+        miPushExecutor.execute(new ThreadUtil.WrapExceptionRunnable(new Runnable() {
+            @Override
+            public void run() {
+                processCounter.incrementAndGet();
+                Stopwatch stopWatch = Stopwatch.createStarted();
+
+                PayloadType type = payload.getType();
+                switch (type) {
+                    case SEND:
+                        if (os == OsType.Android) {
+                            androidPushService.sendToDevices(payload.getDeviceList(), payload.getMessage());
+                        } else if (os == OsType.iOS) {
+                            iOSPushService.sendToDevices(payload.getDeviceList(), payload.getMessage());
+                        }
+
+                        break;
+                    case MULTICAST:
+                        if (os == OsType.Android) {
+                            androidPushService.broadcast(payload.getTopic(), payload.getMessage());
+                        } else if (os == OsType.iOS) {
+                            iOSPushService.broadcast(payload.getTopic(), payload.getMessage());
+                        }
+
+                        break;
+                    case BROADCAST:
+                        if (os == OsType.Android) {
+                            androidPushService.broadcastAll(payload.getMessage());
+                        } else if (os == OsType.iOS) {
+                            iOSPushService.broadcastAll(payload.getMessage());
+                        }
+
+                        break;
+                    default:
+                        logger.warn("Invalid message: {}", payload);
+                        break;
+                }
+
+                stopWatch.stop();
+                processTime.addAndGet(stopWatch.elapsed(TimeUnit.MILLISECONDS));
+            }
+        }));
+
+    }
 
 }

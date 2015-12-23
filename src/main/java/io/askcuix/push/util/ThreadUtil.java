@@ -48,6 +48,9 @@ public class ThreadUtil {
      * 返回线程最后是否被中断.
      */
     public static boolean gracefulShutdown(ExecutorService threadPool, int shutdownTimeoutMills) {
+        if (threadPool == null) {
+            return true;
+        }
         return MoreExecutors.shutdownAndAwaitTermination(threadPool, shutdownTimeoutMills, TimeUnit.MILLISECONDS);
     }
 

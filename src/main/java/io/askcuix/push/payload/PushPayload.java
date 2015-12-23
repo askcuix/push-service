@@ -10,6 +10,7 @@ public abstract class PushPayload {
     protected List<String> deviceList;
     protected String topic;
     protected PayloadMsgType msgType;
+    protected long expiry;
 
     public PayloadType getType() {
         return type;
@@ -41,5 +42,13 @@ public abstract class PushPayload {
 
     public void setMsgType(PayloadMsgType msgType) {
         this.msgType = msgType;
+    }
+
+    public long getExpiry() {
+        return expiry;
+    }
+
+    public void setExpiry(long expiry) {
+        this.expiry = expiry;
     }
 }
